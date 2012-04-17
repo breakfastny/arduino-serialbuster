@@ -23,7 +23,7 @@
 
 #include "Buffer.h"
 
-typedef void (*voidFuncPtr)(Buffer*);
+typedef void (*event_cb_t)(uint8_t recipient, Buffer * data);
 
 // for checking if the serial line is busy
 #if defined(__AVR_ATmega8__)
@@ -49,8 +49,8 @@ class SerialBuster {
   public:
     SerialBuster(uint16_t in_size, uint16_t out_size);
     ~SerialBuster();
-    void init(uint16_t baud_rate);
-    void setCallback(void (*cb)(Buffer*));
+    void init(long baud_rate);
+    void setCallback(void (*cb)(uint8_t recipient, Buffer * data));
     void setAddress(uint8_t address);
     
     void update();
@@ -58,12 +58,12 @@ class SerialBuster {
     bool isReceiving();
 
     uint8_t sendPacket(uint8_t recipient, Buffer * packet);
-    uint8_t crc8(Buffer & data, uint16_t len);
+    uint8_t crc8(Buffer * data, uint16_t len);
 
   protected:
     void appendIncoming(uint8_t incoming);
 
-    voidFuncPtr _cb;
+    event_cb_t _cb;
     Buffer* _in_buf;
     Buffer* _out_buf;
     uint16_t _address;

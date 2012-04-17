@@ -18,6 +18,9 @@ class Buffer {
     uint8_t dequeue();
     uint16_t writeUInt16LE(uint16_t val, uint16_t offset);
     uint16_t readUInt16LE(uint16_t offset);
+    uint16_t writeUInt8(uint8_t val, uint16_t offset);
+    uint8_t readUInt8(uint16_t offset);
+    
     uint8_t peek();
     void clear();
     uint16_t getDataLength();

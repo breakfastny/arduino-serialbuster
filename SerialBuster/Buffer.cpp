@@ -43,6 +43,14 @@ uint8_t Buffer::dequeue() {
   return buf[cursor_out++];
 }
 
+uint16_t Buffer::writeUInt8(uint8_t val, uint16_t offset){
+  buf[offset] = val;
+}
+
+uint8_t Buffer::readUInt8(uint16_t offset){
+  return buf[offset];
+}
+
 uint16_t Buffer::writeUInt16LE(uint16_t val, uint16_t offset) {
   buf[offset] = (val >> 8) & 0xFF;
   buf[offset+1] = val & 0xFF;
