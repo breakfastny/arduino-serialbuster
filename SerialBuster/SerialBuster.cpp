@@ -66,11 +66,10 @@ void SerialBuster::setPacketHandler(void (*cb)(Buffer*)){
 
 void SerialBuster::incomingByte(uint8_t incoming){
 
-  // If buffer overflows then reset (we could do something smarter here)
-  if(_in_buf->getDataLength() == _in_buf->getSize()){
+  if(_in_buf->getDataLength() == _in_buf->getSize()) {
     _in_buf->clear();
   }
-
+  
   _in_buf->enqueue(incoming);
 
   // If we have a full packet ready

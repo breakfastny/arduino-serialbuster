@@ -6,6 +6,7 @@
 
 #include "Buffer.h"
 
+Buffer::Buffer() {}
 
 void Buffer::init(uint16_t _size) { 
 	buf = (uint8_t *) calloc(_size, sizeof(uint8_t));
@@ -37,11 +38,19 @@ void Buffer::clear() {
 }
 
 uint8_t Buffer::dequeue() {
-  if(length-- > 0) {
-    cursor_out %= size;
-    return buf[cursor_out++];
-  }
-  return 0;
+  length--;
+  cursor_out %= size;
+  return buf[cursor_out++];
+}
+
+uint16_t Buffer::writeUInt16LE(uint16_t val, uint16_t offset) {
+  buf[offset] = (val >> 8) & 0xFF;
+  buf[offset+1] = val & 0xFF;
+	return val;
+}
+
+uint16_t Buffer::readUInt16LE(uint16_t offset) {
+  return (uint16_t) (buf[offset] << 8 | buf[offset+1]);
 }
 
 uint16_t Buffer::getDataLength() {
@@ -52,8 +61,8 @@ uint16_t Buffer::getSize() {
   return size;
 }
 
-uint8_t & Buffer::operator[] (uint16_t x) {
-  return buf[x];
+uint8_t & Buffer::operator[] (uint16_t index) {
+  return buf[index];
 }
 
 Buffer::~Buffer() {
