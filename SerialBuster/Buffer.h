@@ -23,7 +23,6 @@ class Buffer {
     uint16_t getDataLength();
     uint16_t getSize();
     uint8_t& operator[] (uint16_t index);
-  
   protected:
     uint8_t * buf; // main byte store
     uint16_t size;  // size of the buffer

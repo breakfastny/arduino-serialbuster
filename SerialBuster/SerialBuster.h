@@ -27,19 +27,22 @@ typedef void (*voidFuncPtr)(Buffer*);
 
 // for checking if the serial line is busy
 #if defined(__AVR_ATmega8__)
-  #define UCSRA  UCSRA
-  #define UDRE  UDRE
+  #define SB_UCSRA            UCSRA
+  #define SB_UDRE             UDRE
 #else
-  #define UCSRA  UCSR0A
-  #define UDRE  UDRE0
+  #define SB_UCSRA            UCSR0A
+  #define SB_UDRE             UDRE0
 #endif
 
 // protocol constants
-#define KS_START              0x02
-#define KS_ESC                0x1B
-#define KS_END                0x03
-#define KS_ADDRESS_BROADCAST  0xFF
-#define KS_ADDRESS_MASTER     0x00
+#define SB_START              0x02
+#define SB_ESC                0x1B
+#define SB_END                0x03
+#define SB_ESC_END            0x1C
+#define SB_ESC_ESC            0x1D
+#define SB_ESC_START          0x1E
+#define SB_BROADCAST          0xFF
+#define SB_MASTER             0x00
 
 
 class SerialBuster {
@@ -47,18 +50,18 @@ class SerialBuster {
     SerialBuster(uint16_t in_size, uint16_t out_size);
     ~SerialBuster();
     void init(uint16_t baud_rate);
-    void setPacketHandler(void (*cb)(Buffer*));
+    void setCallback(void (*cb)(Buffer*));
     void setAddress(uint8_t address);
-
+    
     void update();
     bool isSending();
     bool isReceiving();
 
     uint8_t sendPacket(uint8_t recipient, Buffer * packet);
-    uint8_t crc8(uint8_t *data, uint16_t len);
+    uint8_t crc8(Buffer & data, uint16_t len);
 
   protected:
-    void incomingByte(uint8_t incoming);
+    void appendIncoming(uint8_t incoming);
 
     voidFuncPtr _cb;
     Buffer* _in_buf;

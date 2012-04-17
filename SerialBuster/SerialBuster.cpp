@@ -35,59 +35,100 @@ bool SerialBuster::isReceiving() {
 }
 
 uint8_t SerialBuster::sendPacket(uint8_t recipient, Buffer* payload) {
-  // Copy buffer and calc checksum
-  // byte checksum = 0;
-  // while(packet_buffer->getDataLength() > 0) {
-  //   byte b = packet_buffer->get();
-  //   _out_buf->put(b);
-  //   checksum += b;
-  // }
   return 0;
 }
 
-void SerialBuster::update(){
-  
-  if(Serial.available() != 0) {
-    incomingByte(Serial.read());
+void SerialBuster::update() {
+  // read one byte at the time
+  if(Serial.available() > 0) {
+    appendIncoming(Serial.read());
   }
-
-  if(_out_buf->getDataLength() > 0){
-    // If serial port not currently busy
-    if((UCSRA) & (1 << UDRE)) { 
+  // send one byte at the time
+  if(_out_buf->getDataLength() > 0) {
+    if((SB_UCSRA) & (1 << SB_UDRE)) {
       Serial.write(_out_buf->dequeue());
     }
   }
-  
 }
 
-void SerialBuster::setPacketHandler(void (*cb)(Buffer*)){
+void SerialBuster::setCallback(void (*cb)(Buffer*)){
   _cb = cb;
 }
 
-void SerialBuster::incomingByte(uint8_t incoming){
-
-  if(_in_buf->getDataLength() == _in_buf->getSize()) {
-    _in_buf->clear();
-  }
+void SerialBuster::appendIncoming(uint8_t inbyte){
   
-  _in_buf->enqueue(incoming);
+  uint8_t checksum;
+  uint8_t recipient;
+  
+  switch(inbyte) {
+ 
+    // We're starting a new packet
+    case SB_START:
+      _in_buf->clear();
+      
+      // save startbyte since we need it for crc8 check
+      _in_buf->enqueue(inbyte);
+      break;
 
-  // If we have a full packet ready
-  if(true){
-
-    // If checksums don't match, then do something ()
+    // if it's an END character then we're done with the packet
+    case SB_END:
     
-    // We have a successful packet
+      // last piece of the packet stored.
+      _in_buf->enqueue(inbyte);
+      
+      // Check the recipient
+      recipient = _in_buf[1];
+      
+      // bad recipient
+      if(recipient != _address && recipient != SB_BROADCAST) {
+        return;
+      }
+      
+      // Now we'll see if the packet if valid by making a CRC8 check on the header + payload
+      checksum = crc8((Buffer &)_in_buf, _in_buf->getDataLength() - 2);
+      if(checksum == _in_buf[_in_buf->getDataLength()-2] && _cb != NULL) {
+        // Make copy of the payload and send it to _cb
+        _cb(_in_buf);
+        return;
+      }
+      
+      break;
 
-    if(_cb != NULL)
-      _cb(_in_buf); // actually send the unescaped data here.
+    // if it's the same code as an ESC character, we'll wait for the next char and see what to do
+    case SB_ESC:
 
-    // Clear variables
-    _in_buf->clear();
-  }
+      // read next byte
+      // TODO: should we hang/wait for serial here?
+      inbyte = Serial.read();
+
+      switch(inbyte) {
+  
+        /* if "inbyte" is not one of these two, then we
+         * have a protocol violation.  The best bet
+         * seems to be to leave the byte alone and
+         * just stuff it into the packet
+         */
+        case SB_ESC_END:
+          inbyte = SB_END;
+        break;
+        case SB_ESC_START:
+          inbyte = SB_START;
+        break;
+        case SB_ESC_ESC:
+          inbyte = SB_ESC;
+        break;
+      }
+
+    /* here we fall into the default handler and let
+     * it store the character for us
+     */
+    default:
+      _in_buf->enqueue(inbyte);
+      break;
+    }
 }
 
-uint8_t SerialBuster::crc8(uint8_t *data, uint16_t len) {
+uint8_t SerialBuster::crc8(Buffer &data, uint16_t len) {
   uint8_t crc=0;
   for (uint16_t i=0; i<len;i++) {
     uint8_t inbyte = data[i];
