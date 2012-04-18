@@ -1,4 +1,12 @@
 
+// Ring buffer of dynamic size
+//
+// Can also be used to read and write bytes 
+// at specific indexes, altho it's stongly 
+// discouraged to use both interfaces at the
+// same time for one of these intances.
+
+
 #ifndef Buffer_h
 #define Buffer_h
 
