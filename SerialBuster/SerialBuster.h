@@ -49,7 +49,7 @@ typedef void (*event_cb_t)(uint8_t recipient, Buffer * data);
 
 class SerialBuster {
   public:
-    SerialBuster(uint16_t in_size, uint16_t out_size);
+    SerialBuster(uint16_t in_size, uint16_t out_size, uint16_t max_packet_size);
     ~SerialBuster();
     void init(long baud_rate);
     void setCallback(void (*cb)(uint8_t recipient, Buffer * data));
@@ -68,6 +68,7 @@ class SerialBuster {
     event_cb_t _cb;
     Buffer* _in_buf;
     Buffer* _out_buf;
+    Buffer* _packet_buf;
     uint16_t _address;
 };
 

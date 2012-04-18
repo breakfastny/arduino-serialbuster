@@ -9,11 +9,13 @@
 #include "Buffer.h"
 
 
-SerialBuster::SerialBuster(uint16_t in_size, uint16_t out_size){
+SerialBuster::SerialBuster(uint16_t in_size, uint16_t out_size, uint16_t max_packet_size) {
   _in_buf = (Buffer*)malloc(sizeof(Buffer));
   _out_buf = (Buffer*)malloc(sizeof(Buffer));
+  _packet_buf = (Buffer*)malloc(sizeof(Buffer));
   _in_buf->init(in_size);
   _out_buf->init(out_size);
+  _packet_buf->init(max_packet_size);
   _cb = NULL;
   _address = 0x00; // MASTER
 }
@@ -36,88 +38,77 @@ bool SerialBuster::isReceiving() {
 
 uint8_t SerialBuster::sendPacket(uint8_t recipient, const uint8_t * payload, uint16_t length) {
 
-  uint16_t packet_start_index = _out_buf->enqueueUInt8(SB_START);
-  _out_buf->enqueueUInt8(recipient);
-  _out_buf->enqueueUInt8(_address);
-  _out_buf->enqueueUInt16(length);
-  _out_buf->enqueueUInt8((uint8_t *)payload, length);
+  _packet_buf->clear();
   
-  uint8_t checksum = crc8((Buffer *)_out_buf, SB_PACKET_HEADER_SIZE + length, packet_start_index);  
+  // Write header
+  _packet_buf->enqueueUInt8(SB_START);
+  _packet_buf->enqueueUInt8(recipient);
+  _packet_buf->enqueueUInt8(_address);
+  _packet_buf->enqueueUInt16(length);
   
+  // Append payload
+  _packet_buf->enqueueUInt8((uint8_t *)payload, length);
   
+  // Calculate checksum for outgoing packet
+  uint8_t checksum = crc8((Buffer *)_packet_buf, SB_PACKET_HEADER_SIZE + length, 0);
   
-  //crc8_buf->release();
-  //free(crc8_buf);
+  // Put the checksum in the packet
+  _packet_buf->enqueueUInt8(checksum);
   
-    // var crc8_buffer = new Buffer(this.payload.length + PACKET_HEADER_SIZE);
-    // crc8_buffer[0] = CONSTANTS.START;
-    // crc8_buffer[1] = this.recipient;
-    // crc8_buffer[2] = this.sender;
-    // crc8_buffer.writeInt16LE(this.payload.length, 3);
-    // this.payload.copy(crc8_buffer, PACKET_HEADER_SIZE);
-    // 
-    // var crc8 = this.crc8(crc8_buffer);
-    // 
-    // var escape_buffer = new Buffer(crc8_buffer.length + 1);
-    // crc8_buffer.copy(escape_buffer);
-    // escape_buffer[escape_buffer.length-1] = crc8;
-    // 
-    // // How many chars to do we have to escape?
-    // var escaped_chars = _u.filter(escape_buffer, function (item) {
-    //   return (item == CONSTANTS.ESC || item == CONSTANTS.END || item == CONSTANTS.START);
-    // }).length - 1; // minus 1 since we don't want to count the START byte
-    // 
-    // // payload data
-    // // packet header
-    // // another byte for each escape
-    // // leave 2 bytes for crc8 and END
-    // var outgoing_buffer = new Buffer(this.payload.length + PACKET_HEADER_SIZE + escaped_chars + 2);
-    // 
-    // outgoing_buffer[0] = CONSTANTS.START;
-    // var outgoing_buffer_pos = 1;
-    // 
-    // // Escape the buffer
-    // for (var i=1; i < escape_buffer.length; i++) {
-    //   var b = escape_buffer[i];
-    //   switch(b) {
-    //     case CONSTANTS.START:
-    //       outgoing_buffer[outgoing_buffer_pos++] = CONSTANTS.ESC;
-    //       outgoing_buffer[outgoing_buffer_pos++] = CONSTANTS.ESC_START;
-    //     break;
-    //     case CONSTANTS.END:
-    //       outgoing_buffer[outgoing_buffer_pos++] = CONSTANTS.ESC;
-    //       outgoing_buffer[outgoing_buffer_pos++] = CONSTANTS.ESC_END;
-    //     break;
-    //     case CONSTANTS.ESC:
-    //       outgoing_buffer[outgoing_buffer_pos++] = CONSTANTS.ESC;
-    //       outgoing_buffer[outgoing_buffer_pos++] = CONSTANTS.ESC_ESC;
-    //     break;
-    //     default:
-    //       outgoing_buffer[outgoing_buffer_pos++] = b;
-    //     break;
-    //   }
-    // }
-    // 
-    // // add the final end byte
-    // outgoing_buffer[outgoing_buffer_pos++] = CONSTANTS.END;
-    // 
-    // return outgoing_buffer;
+  // Put the start byte into the output buffer and
+  // throw away start byte from packet buffer since we don't
+  // want to escape it.
+  _out_buf->enqueueUInt8(SB_START);
+  _packet_buf->dequeue();
   
+  // Now copy _packet_buf (skip SB_START) into output buffer
+  // and escape all data while doing so.
+  while(_packet_buf->getDataLength()) {
+    uint8_t b = _packet_buf->dequeue();
+    switch(b) {
+      case SB_START:
+        _out_buf->enqueueUInt8(SB_ESC);
+        _out_buf->enqueueUInt8(SB_ESC_START);
+      break;
+      case SB_END:
+        _out_buf->enqueueUInt8(SB_ESC);
+        _out_buf->enqueueUInt8(SB_ESC_END);
+      break;
+      case SB_ESC:
+        _out_buf->enqueueUInt8(SB_ESC);
+        _out_buf->enqueueUInt8(SB_ESC_ESC);
+      break;
+      default:
+        _out_buf->enqueueUInt8(b);
+      break;
+    }
+  }
   
+  // Finally add the END byte
+  _out_buf->enqueueUInt8(SB_END);
   
-  
+  // while(_out_buf->getDataLength()) {
+  //   Serial.print(_out_buf->dequeue(), HEX);
+  //   Serial.print(' ');
+  // }
+  // Serial.print('\n');
 }
 
 void SerialBuster::update() {
+  
   // read one byte at the time
   if(Serial.available() > 0) {
     appendIncoming(Serial.read());
-    //Serial.write(Serial.read());
+    //Serial.write(Serial.read()); // echo
   }
+  
   // send one byte at the time
+  // TODO: set a flag for chunk size, it might 
+  // be more efficient to send data in chunks
+  // of 8 or 16 bytes at a time.
   if(_out_buf->getDataLength() > 0) {
     if((SB_UCSRA) & (1 << SB_UDRE)) {
-      //Serial.write(_out_buf->dequeue());
+      Serial.write(_out_buf->dequeue());
     }
   }
 }
@@ -128,7 +119,8 @@ void SerialBuster::setCallback(void (*cb)(uint8_t recipient, Buffer * data)){
 
 void SerialBuster::appendIncoming(uint8_t inbyte){
   
-  //Serial.write(inbyte);
+  // TODO: Read head as soon as it's written and if recipient isn't for us, then
+  // we can set a flag to ignore LENGTH many incoming bytes.
   
   uint16_t checksum_index = 0;
   uint8_t checksum;
@@ -198,7 +190,7 @@ void SerialBuster::appendIncoming(uint8_t inbyte){
           inbyte = SB_ESC;
         break;
       }
-
+    
     /* here we fall into the default handler and let
      * it store the character for us
      */
