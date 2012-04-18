@@ -44,6 +44,8 @@ typedef void (*event_cb_t)(uint8_t recipient, Buffer * data);
 #define SB_BROADCAST          0xFF
 #define SB_MASTER             0x00
 
+#define SB_ENVELOPE_SIZE      7
+#define SB_PACKET_HEADER_SIZE 5
 
 class SerialBuster {
   public:
@@ -57,8 +59,8 @@ class SerialBuster {
     bool isSending();
     bool isReceiving();
 
-    uint8_t sendPacket(uint8_t recipient, Buffer * packet);
-    uint8_t crc8(Buffer * data, uint16_t len);
+    uint8_t sendPacket(uint8_t recipient, const uint8_t * payload, uint16_t length);
+    uint8_t crc8(Buffer * data, uint16_t len, uint16_t offset);
 
   protected:
     void appendIncoming(uint8_t incoming);

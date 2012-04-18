@@ -2,7 +2,7 @@
 #include "Buffer.h"
 
 SerialBuster sb = SerialBuster(512, 512);
-long mover = 0;
+//long mover = 0;
 
 void setup() {
   pinMode(13, OUTPUT);
@@ -17,12 +17,12 @@ void loop() {
 }
 
 void incomingPacket (uint8_t from, Buffer * buffer) {
+  // Flash LED to debug that we have a valid package received.
   blink_led();
   blink_led();
   blink_led();
   blink_led();
 }
-
 
 void blink_led() {
   digitalWrite(13, HIGH);
