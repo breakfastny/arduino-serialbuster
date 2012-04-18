@@ -220,4 +220,5 @@ uint8_t SerialBuster::crc8(Buffer * data, uint16_t len, uint16_t offset) {
 SerialBuster::~SerialBuster() {
   free(_in_buf);
   free(_out_buf);
+  free(_packet_buf);
 }
