@@ -17,15 +17,6 @@ void Buffer::init(uint16_t _size) {
   cursor_out = 0;
 }
 
-// void Buffer::append(uint8_t * data, uint16_t offset, uint16_t length) {
-//   this.length += length;
-//   cursor_in %= size;
-//   buf[cursor_in] = b;
-//   cursor_in++;
-//   memcpy(buf + offset, data, length);
-// }
-
-
 // returns index of newly enqueued byte
 uint16_t Buffer::enqueueUInt8(uint8_t b) {
   uint16_t ret = 0;
@@ -85,9 +76,10 @@ uint8_t Buffer::readUInt8(uint16_t offset) {
   return buf[(offset % size)];
 }
 
+// Little endian
 void Buffer::writeUInt16(uint16_t val, uint16_t offset) {
-  buf[(offset % size)] = (val >> 8) & 0xFF;
-  buf[((offset+1) % size)] = val & 0xFF;
+  buf[((offset) % size)] = val & 0xFF;
+  buf[((offset+1) % size)] = (val >> 8) & 0xFF;
 }
 
 uint16_t Buffer::readUInt16(uint16_t offset) {
