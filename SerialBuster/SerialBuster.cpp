@@ -125,6 +125,7 @@ void SerialBuster::appendIncoming(uint8_t inbyte){
   uint16_t checksum_index = 0;
   uint8_t checksum;
   uint8_t recipient;
+  uint8_t sender;
   
   switch(inbyte) {
     
@@ -141,6 +142,7 @@ void SerialBuster::appendIncoming(uint8_t inbyte){
       // last piece of the packet stored.
       _in_buf->enqueueUInt8(inbyte);
       //Serial.print('E');
+
       // Check the recipient
       recipient = _in_buf->readUInt8(1);
       
@@ -156,12 +158,21 @@ void SerialBuster::appendIncoming(uint8_t inbyte){
       checksum = crc8((Buffer *)_in_buf, checksum_index, 0);
 
       if(checksum == _in_buf->readUInt8(checksum_index) && _cb != NULL) {
-        // Make copy of the payload and send it to _cb
-        //Serial.print('O');
-        _cb(recipient, _in_buf);
+        //Serial.print('O');        
+        // TODO: Make copy of the payload and send it to _cb
+        sender = _in_buf->readUInt8(2);
+        
+        //uint8_t payload[checksum_index - SB_PACKET_HEADER_SIZE];
+        //memcpy(payload, source)
+        
+        // get rid of the header
+        for(size_t i = 0; i < SB_PACKET_HEADER_SIZE; ++i){
+          _in_buf->dequeue();
+        }
+        _in_buf->pop(); // end
+        _in_buf->pop(); // crc8
+        _cb(sender, _in_buf);
         return;
-      }else{
-        //Serial.print('C');
       }
       
       break;

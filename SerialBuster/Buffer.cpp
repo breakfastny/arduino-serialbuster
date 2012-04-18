@@ -68,6 +68,14 @@ uint8_t Buffer::dequeue() {
   return buf[cursor_out++];
 }
 
+// stack pop (filo)
+uint8_t Buffer::pop() {
+  length--;
+  cursor_in--;
+  cursor_in %= size;
+  return buf[cursor_in];
+}
+
 void Buffer::writeUInt8(uint8_t val, uint16_t offset){
   buf[(offset % size)] = val;
 }

@@ -7,7 +7,7 @@ long mover = 0;
 void setup() {
   pinMode(13, OUTPUT);
   digitalWrite(13, LOW);
-  sb.init(9600);
+  sb.init(57600);
   //sb.setCallback(incomingPacket);
   delay(50);
 }

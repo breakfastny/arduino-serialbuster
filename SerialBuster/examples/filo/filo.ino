@@ -16,14 +16,10 @@ void setup() {
   b.enqueueUInt8(3);
   
   while(b.getDataLength())
-    Serial.println(b.dequeue());
+    Serial.println(b.pop());
   
-  b.enqueueUInt8(-4);
-  b.enqueueUInt8(-51);
-
-  while(b.getDataLength())
-    Serial.println((int8_t)b.dequeue());
-  
+  b.enqueueUInt8(4);
+  Serial.println(b.pop());
 }
 
 void loop() {

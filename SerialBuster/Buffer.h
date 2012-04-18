@@ -1,5 +1,5 @@
 
-// Ring buffer of dynamic size
+// FIFO Ring buffer of dynamic size
 //
 // Can also be used to read and write bytes 
 // at specific indexes, altho it's stongly 
@@ -26,6 +26,7 @@ class Buffer {
     uint16_t enqueueUInt8(uint8_t * data, uint16_t len);
     uint16_t enqueueUInt16(uint16_t bb);
     uint8_t dequeue();
+    uint8_t pop();
     void writeUInt16(uint16_t val, uint16_t offset);
     uint16_t readUInt16(uint16_t offset);
     void writeUInt8(uint8_t val, uint16_t offset);
