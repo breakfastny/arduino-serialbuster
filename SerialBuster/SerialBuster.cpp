@@ -126,6 +126,18 @@ void SerialBuster::appendIncoming(uint8_t inbyte){
   uint8_t checksum;
   uint8_t recipient;
   uint8_t sender;
+  uint16_t payload_length = 0;
+  uint16_t esc_wait = 400; // max ticks to wait for next char
+  
+  //_in_buf->enqueueUInt8(inbyte);
+  
+  // if(inbyte == SB_END) {
+  //   for(size_t i = 0; i < _in_buf->getDataLength(); ++i){
+  //     Serial.write(_in_buf->readUInt8(i));
+  //   }
+  //   _in_buf->clear();
+  // }
+  
   
   switch(inbyte) {
     
@@ -142,37 +154,48 @@ void SerialBuster::appendIncoming(uint8_t inbyte){
       // last piece of the packet stored.
       _in_buf->enqueueUInt8(inbyte);
       //Serial.print('E');
-
+      // for(size_t i = 0; i < _in_buf->getDataLength(); ++i){
+      //   Serial.write(_in_buf->readUInt8(i));
+      // }
+      
+      
       // Check the recipient
       recipient = _in_buf->readUInt8(1);
       
       // bad recipient
       if(recipient != _address && recipient != SB_BROADCAST) {
-        //Serial.print('R');
+        Serial.print('R');
         return;
       }
+      
+      payload_length = _in_buf->readUInt16(3);
       
       // Now we'll see if the packet if valid by 
       // making a CRC8 check on the header + payload
       checksum_index = _in_buf->getDataLength() - 2;
+      //checksum_index = SB_PACKET_HEADER_SIZE + payload_length + 1;
       checksum = crc8((Buffer *)_in_buf, checksum_index, 0);
 
       if(checksum == _in_buf->readUInt8(checksum_index) && _cb != NULL) {
-        //Serial.print('O');        
+        //Serial.print('O');
+        
         // TODO: Make copy of the payload and send it to _cb
         sender = _in_buf->readUInt8(2);
         
-        //uint8_t payload[checksum_index - SB_PACKET_HEADER_SIZE];
-        //memcpy(payload, source)
-        
-        // get rid of the header
-        for(size_t i = 0; i < SB_PACKET_HEADER_SIZE; ++i){
+        //get rid of the header
+        for(uint8_t i = 0; i < SB_PACKET_HEADER_SIZE; ++i){
           _in_buf->dequeue();
         }
-        _in_buf->pop(); // end
-        _in_buf->pop(); // crc8
+        
+         // tail
+        _in_buf->pop();
+        _in_buf->pop();
+        
+        // dispatch payload
         _cb(sender, _in_buf);
         return;
+      }else{
+        //Serial.print('C');
       }
       
       break;
@@ -180,17 +203,20 @@ void SerialBuster::appendIncoming(uint8_t inbyte){
     // if it's the same code as an ESC character, we'll wait for the next char and see what to do
     case SB_ESC:
 
-      // read next byte
-      // TODO: should we hang/wait for serial here?
-      inbyte = Serial.read();
+      do {
+        inbyte = Serial.read();
+      } while (inbyte == 255 && esc_wait-- != 0);
+      
+      // Serial.print("E");
+      // Serial.write(inbyte);
 
       switch(inbyte) {
   
-        /* if "inbyte" is not one of these two, then we
-         * have a protocol violation.  The best bet
-         * seems to be to leave the byte alone and
-         * just stuff it into the packet
-         */
+        //if "inbyte" is not one of these two, then we
+        //have a protocol violation.  The best bet
+        //seems to be to leave the byte alone and
+        //just stuff it into the packet
+        //
         case SB_ESC_END:
           inbyte = SB_END;
         break;
@@ -202,14 +228,12 @@ void SerialBuster::appendIncoming(uint8_t inbyte){
         break;
       }
     
-    /* here we fall into the default handler and let
-     * it store the character for us
-     */
+    // here we fall into the default handler and let
+    // it store the character for us
     default:
       //Serial.print('P');
       _in_buf->enqueueUInt8(inbyte);
-      break;
-    }
+  }
 }
 
 uint8_t SerialBuster::crc8(Buffer * data, uint16_t len, uint16_t offset) {
