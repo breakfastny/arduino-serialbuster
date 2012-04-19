@@ -97,7 +97,7 @@ uint8_t SerialBuster::sendPacket(uint8_t recipient, const uint8_t * payload, uin
 void SerialBuster::update() {
   
   // read one byte at the time
-  if(Serial.available() > 0) {
+  if(Serial.available()) {
     appendIncoming(Serial.read());
     //Serial.write(Serial.read()); // echo
   }
