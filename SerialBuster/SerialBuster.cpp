@@ -18,14 +18,34 @@ SerialBuster::SerialBuster(uint16_t in_size, uint16_t out_size, uint16_t max_pac
   _packet_buf->init(max_packet_size);
   _cb = NULL;
   _address = 0x00; // MASTER
+  _tx_timer = 0;
+  _in_tx_mode = false;
 }
 
 void SerialBuster::init(long baud_rate) {
   Serial.begin(baud_rate);
 }
 
+void SerialBuster::setRS485pins(uint8_t tx_enable, uint8_t rx_enable) {
+  _tx_enable_pin = tx_enable;
+  _rx_enable_pin = rx_enable;
+}
+
+void SerialBuster::enableTx(bool tx_enable) {
+  // TODO: make this switch faster, more efficient by not using digitalWrite
+  digitalWrite(_tx_enable_pin, tx_enable ? HIGH : LOW);
+  digitalWrite(_rx_enable_pin, tx_enable ? HIGH : LOW);
+  _in_tx_mode = tx_enable;
+}
+
 void SerialBuster::setAddress(uint8_t address) {
   _address = address;
+  // master should be transmitting by default.
+  if(_address == SB_MASTER) {
+    enableTx(true);
+  }else{
+    enableTx(false);
+  }
 }
 
 bool SerialBuster::isSending() {
@@ -36,8 +56,17 @@ bool SerialBuster::isReceiving() {
   return _in_buf->getDataLength() > 0;
 }
 
-uint8_t SerialBuster::sendPacket(uint8_t recipient, const uint8_t * payload, uint16_t length) {
+uint8_t SerialBuster::sendPacket(uint8_t recipient, Buffer * payload, uint16_t length) {
+  uint8_t pay[length];
+  uint16_t c = 0;
+  while(payload->getDataLength()){
+    pay[c++] = payload->dequeue();
+  }
+  return sendPacket(recipient, pay, length);
+}
 
+uint8_t SerialBuster::sendPacket(uint8_t recipient, const uint8_t * payload, uint16_t length) {
+  
   _packet_buf->clear();
   
   // Write header
@@ -87,33 +116,44 @@ uint8_t SerialBuster::sendPacket(uint8_t recipient, const uint8_t * payload, uin
   // Finally add the END byte
   _out_buf->enqueueUInt8(SB_END);
   
-  // while(_out_buf->getDataLength()) {
-  //   Serial.print(_out_buf->dequeue(), HEX);
-  //   Serial.print(' ');
-  // }
-  // Serial.print('\n');
+  // open up for TX and next call to send will empty our out buffer
+  enableTx(true);
+  send();
 }
 
 void SerialBuster::update() {
   
-  // read one byte at the time
-  if(Serial.available()) {
-    appendIncoming(Serial.read());
-    //Serial.write(Serial.read()); // echo
+  // check if we should drop into RX mode
+  if(_tx_timer != 0 && (millis() - _tx_timer) > SB_RS485_TX_GRACETIME) { // wait 10ms
+    enableTx(false);
+    _tx_timer = 0;
   }
   
-  // send one byte at the time
-  // TODO: set a flag for chunk size, it might 
-  // be more efficient to send data in chunks
-  // of 8 or 16 bytes at a time.
-  if(_out_buf->getDataLength() > 0) {
+  // read one byte at the time
+  if(Serial.available() > 0) {
+    appendIncoming(Serial.read());
+  }
+}
+
+void SerialBuster::send() {
+  
+  while(_out_buf->getDataLength() > 0) {
     if((SB_UCSRA) & (1 << SB_UDRE)) {
       Serial.write(_out_buf->dequeue());
     }
   }
+  
+  // we've emptied our buffer into 
+  // the serial output. if we're not
+  // master we should start a timer
+  // for when to disable TX.
+  if(_address != SB_MASTER) {
+    _tx_timer = millis();
+  }
+  
 }
 
-void SerialBuster::setCallback(void (*cb)(uint8_t recipient, Buffer * data)){
+void SerialBuster::setCallback(void (*cb)(uint8_t recipient, Buffer * payload, uint16_t length)) {
   _cb = cb;
 }
 
@@ -127,17 +167,7 @@ void SerialBuster::appendIncoming(uint8_t inbyte){
   uint8_t recipient;
   uint8_t sender;
   uint16_t payload_length = 0;
-  uint16_t esc_wait = 400; // max ticks to wait for next char
-  
-  //_in_buf->enqueueUInt8(inbyte);
-  
-  // if(inbyte == SB_END) {
-  //   for(size_t i = 0; i < _in_buf->getDataLength(); ++i){
-  //     Serial.write(_in_buf->readUInt8(i));
-  //   }
-  //   _in_buf->clear();
-  // }
-  
+  uint16_t esc_wait = 400; // max ticks to wait for next char  
   
   switch(inbyte) {
     
@@ -173,26 +203,24 @@ void SerialBuster::appendIncoming(uint8_t inbyte){
       // Now we'll see if the packet if valid by 
       // making a CRC8 check on the header + payload
       checksum_index = _in_buf->getDataLength() - 2;
-      //checksum_index = SB_PACKET_HEADER_SIZE + payload_length + 1;
       checksum = crc8((Buffer *)_in_buf, checksum_index, 0);
 
       if(checksum == _in_buf->readUInt8(checksum_index) && _cb != NULL) {
-        //Serial.print('O');
         
         // TODO: Make copy of the payload and send it to _cb
         sender = _in_buf->readUInt8(2);
         
-        //get rid of the header
+        // get rid of the header
         for(uint8_t i = 0; i < SB_PACKET_HEADER_SIZE; ++i){
           _in_buf->dequeue();
         }
         
-         // tail
+         // remove tail bytes
         _in_buf->pop();
         _in_buf->pop();
         
         // dispatch payload
-        _cb(sender, _in_buf);
+        _cb(sender, _in_buf, _in_buf->getDataLength());
         return;
       }else{
         //Serial.print('C');

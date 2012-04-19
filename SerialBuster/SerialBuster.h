@@ -23,7 +23,7 @@
 
 #include "Buffer.h"
 
-typedef void (*event_cb_t)(uint8_t recipient, Buffer * data);
+typedef void (*event_cb_t)(uint8_t recipient, Buffer * payload, uint16_t length);
 
 // for checking if the serial line is busy
 #if defined(__AVR_ATmega8__)
@@ -46,30 +46,40 @@ typedef void (*event_cb_t)(uint8_t recipient, Buffer * data);
 
 #define SB_ENVELOPE_SIZE      7
 #define SB_PACKET_HEADER_SIZE 5
+#define SB_RS485_TX_GRACETIME 2 //ms
 
 class SerialBuster {
   public:
     SerialBuster(uint16_t in_size, uint16_t out_size, uint16_t max_packet_size);
     ~SerialBuster();
     void init(long baud_rate);
-    void setCallback(void (*cb)(uint8_t recipient, Buffer * data));
+    void setRS485pins(uint8_t tx_enable, uint8_t rx_enable);
+    void enableTx(bool tx_enable);
+    void setCallback(void (*cb)(uint8_t recipient, Buffer * payload, uint16_t length));
     void setAddress(uint8_t address);
     
-    void update();
+    void send();
+    void update();  // call in loop
+    
     bool isSending();
     bool isReceiving();
-
+    
+    uint8_t sendPacket(uint8_t recipient, Buffer * payload, uint16_t length);
     uint8_t sendPacket(uint8_t recipient, const uint8_t * payload, uint16_t length);
     uint8_t crc8(Buffer * data, uint16_t len, uint16_t offset);
-
+    
   protected:
     void appendIncoming(uint8_t incoming);
-
+    
     event_cb_t _cb;
     Buffer* _in_buf;
     Buffer* _out_buf;
     Buffer* _packet_buf;
     uint16_t _address;
+    uint8_t _tx_enable_pin;
+    uint8_t _rx_enable_pin;
+    bool _in_tx_mode;
+    uint64_t _tx_timer; // timer for when to disable tx.
 };
 
 
