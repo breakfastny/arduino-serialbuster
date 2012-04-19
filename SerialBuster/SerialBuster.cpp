@@ -162,9 +162,9 @@ void SerialBuster::appendIncoming(uint8_t inbyte){
       // Check the recipient
       recipient = _in_buf->readUInt8(1);
       
-      // bad recipient
+      // wrong recipient
       if(recipient != _address && recipient != SB_BROADCAST) {
-        Serial.print('R');
+        //Serial.print('R');
         return;
       }
       
