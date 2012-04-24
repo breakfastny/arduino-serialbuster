@@ -1,4 +1,5 @@
-// Non blocking (chunked) Serial read/write
+// Serial read/write over rs485 with automatic tx/rx switching
+// some basic inspiration from J. Romkey SLIP http://www.ietf.org/rfc/rfc1055.txt
 
 // Supports the use of custom commands and custom callbacks each command
 
