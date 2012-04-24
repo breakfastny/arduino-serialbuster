@@ -130,7 +130,7 @@ void SerialBuster::update() {
   }
   
   // read one byte at the time
-  if(Serial.available() > 0) {
+  while(Serial.available() > 0) {
     appendIncoming(Serial.read());
   }
 }
@@ -183,11 +183,7 @@ void SerialBuster::appendIncoming(uint8_t inbyte){
     case SB_END:
       // last piece of the packet stored.
       _in_buf->enqueueUInt8(inbyte);
-      //Serial.print('E');
-      // for(size_t i = 0; i < _in_buf->getDataLength(); ++i){
-      //   Serial.write(_in_buf->readUInt8(i));
-      // }
-      
+      //Serial.print('E');      
       
       // Check the recipient
       recipient = _in_buf->readUInt8(1);
