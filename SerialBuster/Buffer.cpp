@@ -96,7 +96,6 @@ uint16_t Buffer::readUInt16(uint16_t offset) {
   return (uint16_t) (buf[(offset+1 % size)] << 8 | buf[(offset % size)]);
 }
 
-// TODO: test this
 void Buffer::writeUInt32(uint32_t val, uint16_t offset) {
   buf[offset+0 % size] = (val & 0xFF);
   buf[offset+1 % size] = ((val >> 8) & 0xFF);
@@ -111,7 +110,6 @@ uint32_t Buffer::readUInt32(uint16_t offset) {
                      (uint32_t) buf[offset+3 % size] << 24);
 }
 
-// TODO: test this
 void Buffer::writeFloat(float val, uint16_t offset) {
   union buffer_u u;
   u.f = val;

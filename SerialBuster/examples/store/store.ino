@@ -14,9 +14,11 @@ void setup() {
   // store using [] operator
   b[0] = 1;
   b[1] = 2;
+  b[2] = -3;
   
   Serial.println(b[0]);
   Serial.println(b[1]);
+  Serial.println((int8_t)b[2]);
   
   // store 16bit vars
   b.writeUInt16(65535, 2);
@@ -24,7 +26,6 @@ void setup() {
   
   b.writeUInt16(-25000, 2);
   Serial.println((int)b.readUInt16(2));
-
 
   //b.clear();
   
@@ -40,6 +41,14 @@ void setup() {
   b.writeUInt32(l2, 0);
   Serial.println((int32_t)b.readUInt32(0));
   
+  float f1 = 123.456;
+  b.writeFloat(f1, 0);
+  Serial.println(b.readFloat(0), 3);
+
+  float f2 = -123.456;
+  b.writeFloat(f2, 0);
+  Serial.println(b.readFloat(0), 3);
+
   
 }
 
