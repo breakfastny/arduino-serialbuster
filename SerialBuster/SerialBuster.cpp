@@ -65,6 +65,11 @@ uint8_t SerialBuster::sendPacket(uint8_t recipient, Buffer * payload, uint16_t l
   return sendPacket(recipient, pay, length);
 }
 
+uint8_t SerialBuster::sendPacket(uint8_t recipient, int payload) {
+  return sendPacket(recipient, 
+      static_cast<uint8_t*>(static_cast<void*>(&payload)), sizeof(int));
+}
+
 uint8_t SerialBuster::sendPacket(uint8_t recipient, const uint8_t * payload, uint16_t length) {
   
   _packet_buf->clear();
@@ -166,7 +171,6 @@ void SerialBuster::appendIncoming(uint8_t inbyte){
   uint8_t checksum;
   uint8_t recipient;
   uint8_t sender;
-  uint16_t payload_length = 0;
   uint16_t esc_wait = 400; // max ticks to wait for next char  
   
   switch(inbyte) {
@@ -194,8 +198,6 @@ void SerialBuster::appendIncoming(uint8_t inbyte){
         return;
       }
       
-      payload_length = _in_buf->readUInt16(3);
-      
       // Now we'll see if the packet if valid by 
       // making a CRC8 check on the header + payload
       checksum_index = _in_buf->getDataLength() - 2;
@@ -206,7 +208,8 @@ void SerialBuster::appendIncoming(uint8_t inbyte){
         // TODO: Make copy of the payload and send it to _cb
         sender = _in_buf->readUInt8(2);
         
-        // get rid of the header
+        // forward out cursor past the header so the next call to dequeue
+        // will start returning payload data.
         for(uint8_t i = 0; i < SB_PACKET_HEADER_SIZE; ++i){
           _in_buf->dequeue();
         }
@@ -219,6 +222,8 @@ void SerialBuster::appendIncoming(uint8_t inbyte){
         _cb(sender, _in_buf, _in_buf->getDataLength());
         return;
       }else{
+        // Bad checksum or no callback
+        //
         //Serial.print('C');
       }
       

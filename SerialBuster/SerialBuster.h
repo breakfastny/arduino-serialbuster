@@ -66,6 +66,7 @@ class SerialBuster {
     bool isReceiving();
     
     uint8_t sendPacket(uint8_t recipient, Buffer * payload, uint16_t length);
+    uint8_t sendPacket(uint8_t recipient, int payload);
     uint8_t sendPacket(uint8_t recipient, const uint8_t * payload, uint16_t length);
     uint8_t crc8(Buffer * data, uint16_t len, uint16_t offset);
     

@@ -5,7 +5,7 @@ Buffer b = Buffer();
 
 void setup() {
   //ser.init(9600);
-  Serial.begin(57600);
+  Serial.begin(9600);
   Serial.println("init");
   b.init(16);
   

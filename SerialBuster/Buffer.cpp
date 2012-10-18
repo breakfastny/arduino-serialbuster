@@ -10,10 +10,10 @@
 Buffer::Buffer() {}
 
 void Buffer::init(uint16_t _size) { 
-	buf = (uint8_t *) calloc(_size, sizeof(uint8_t));
-	size = _size;
+  buf = (uint8_t *) calloc(_size, sizeof(uint8_t));
+  size = _size;
   length = 0;
-	cursor_in = 0;
+  cursor_in = 0;
   cursor_out = 0;
 }
 
@@ -76,6 +76,9 @@ uint8_t Buffer::pop() {
   return buf[cursor_in];
 }
 
+
+// ###### INDEX BASED FUNCTIONS
+
 void Buffer::writeUInt8(uint8_t val, uint16_t offset){
   buf[(offset % size)] = val;
 }
@@ -84,14 +87,47 @@ uint8_t Buffer::readUInt8(uint16_t offset) {
   return buf[(offset % size)];
 }
 
-// Little endian
 void Buffer::writeUInt16(uint16_t val, uint16_t offset) {
   buf[((offset) % size)] = val & 0xFF;
   buf[((offset+1) % size)] = (val >> 8) & 0xFF;
 }
 
 uint16_t Buffer::readUInt16(uint16_t offset) {
-  return (uint16_t) (buf[(offset % size)] << 8 | buf[(offset+1 % size)]);
+  return (uint16_t) (buf[(offset+1 % size)] << 8 | buf[(offset % size)]);
+}
+
+// TODO: test this
+void Buffer::writeUInt32(uint32_t val, uint16_t offset) {
+  buf[offset+0 % size] = (val & 0xFF);
+  buf[offset+1 % size] = ((val >> 8) & 0xFF);
+  buf[offset+2 % size] = ((val >> 16) & 0xFF);
+  buf[offset+3 % size] = ((val >> 24) & 0xFF);
+}
+
+uint32_t Buffer::readUInt32(uint16_t offset) {
+  return (uint32_t) ((uint32_t) buf[offset+0 % size] |
+                     (uint32_t) buf[offset+1 % size] << 8 |
+                     (uint32_t) buf[offset+2 % size] << 16 |
+                     (uint32_t) buf[offset+3 % size] << 24);
+}
+
+// TODO: test this
+void Buffer::writeFloat(float val, uint16_t offset) {
+  union buffer_u u;
+  u.f = val;
+  for (uint8_t i = 0; i < 4; i++)
+    buf[offset+i % size] = u.b[i];
+}
+
+float Buffer::readFloat(uint16_t offset) {
+  union buffer_u u;
+  for (uint8_t i = 0; i < 4; i++)
+    u.b[i] = buf[offset+i % size];
+  return u.f;
+}
+
+uint16_t Buffer::readCursorPos() {
+  return cursor_out;
 }
 
 uint16_t Buffer::getDataLength() {
