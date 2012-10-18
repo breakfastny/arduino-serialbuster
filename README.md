@@ -12,7 +12,7 @@ of slave devices.
 Notes
 --
 
-All data is stored as bytes, unsigned int (16 bit) or unsigned long (32bit). If
+All data is stored as bytes, unsigned int (16 bit) or unsigned long (32 bit). If
 you store data that needs signedness, make sure to cast it when reading it.
 
 16 and 32 bit data structures are stored in Buffer as Little Endian.

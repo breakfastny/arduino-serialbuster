@@ -45,12 +45,12 @@ void incomingPacket (uint8_t from, Buffer * buffer, uint16_t len) {
     
     
     case 4:
-      (long)buffer->readUInt32(readcursor) == 100 * 1000 * 1000 ? ok() : fail();
+      (long)buffer->readUInt32(readcursor) == 100l * 1000l * 1000l ? ok() : fail();
     break;
     
 
     case 5:
-      (long)buffer->readUInt32(readcursor) == 100 * 1000 * 1000 * -1 ? ok() : fail();
+      (long)buffer->readUInt32(readcursor) == 100l * 1000l * 1000l * -1 ? ok() : fail();
     break;
 
 
@@ -66,6 +66,19 @@ void incomingPacket (uint8_t from, Buffer * buffer, uint16_t len) {
 
     case 8:
         abs(buffer->readFloat(readcursor) - (-39172.3971)) < FLOAT_TOLERANCE ? ok() : fail();
+    break;
+    
+
+    case 9:
+        buffer->readUInt8(readcursor) == 'a' ? ok() : fail();
+    break;
+    
+
+    case 10:
+        char a = buffer->readUInt8(readcursor);
+        char b = buffer->readUInt8(readcursor + 1);
+        char bang = buffer->readUInt8(readcursor + 2);
+        (a == 'a' && b == 'b' && bang == '!') ? ok() : fail();
     break;
 
   };
