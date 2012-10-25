@@ -82,6 +82,7 @@ class SerialBuster {
     uint8_t _rx_enable_pin;
     bool _in_tx_mode;
     uint64_t _tx_timer; // timer for when to disable tx.
+    bool _useRS485pins;
 };
 
 

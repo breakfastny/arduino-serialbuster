@@ -20,6 +20,7 @@ SerialBuster::SerialBuster(uint16_t in_size, uint16_t out_size, uint16_t max_pac
   _address = 0x00; // MASTER
   _tx_timer = 0;
   _in_tx_mode = false;
+  _useRS485pins = false;
 }
 
 void SerialBuster::init(long baud_rate) {
@@ -29,9 +30,13 @@ void SerialBuster::init(long baud_rate) {
 void SerialBuster::setRS485pins(uint8_t tx_enable, uint8_t rx_enable) {
   _tx_enable_pin = tx_enable;
   _rx_enable_pin = rx_enable;
+  _useRS485pins = true;
 }
 
 void SerialBuster::enableTx(bool tx_enable) {
+  if(!_useRS485pins) {
+    return;
+  }
   // TODO: make this switch faster, more efficient by not using digitalWrite
   digitalWrite(_tx_enable_pin, tx_enable ? HIGH : LOW);
   digitalWrite(_rx_enable_pin, tx_enable ? HIGH : LOW);
