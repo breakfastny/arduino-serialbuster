@@ -16,6 +16,7 @@ void setup() {
   digitalWrite(13, LOW);
   sb.init(9600);
   sb.setCallback(incomingPacket);
+  delay(5000);
   send(2);
 }
 
