@@ -28,6 +28,8 @@ void SerialBuster::init(long baud_rate) {
 }
 
 void SerialBuster::setRS485pins(uint8_t tx_enable, uint8_t rx_enable) {
+  pinMode(tx_enable, OUTPUT);
+  pinMode(rx_enable, OUTPUT);
   _tx_enable_pin = tx_enable;
   _rx_enable_pin = rx_enable;
   _useRS485pins = true;
